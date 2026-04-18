@@ -1,8 +1,8 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, WebSocket, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import get_async_session
+from app.db.base import async_session_factory, get_async_session
 from app.db.models import User
 from app.services.auth_service import get_user_by_id
 from app.utils.security import verify_token
@@ -24,3 +24,24 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
     return user
+
+
+async def authenticate_websocket(websocket: WebSocket) -> User | None:
+    """Authenticate a WebSocket connection using a JWT passed as a ?token= query parameter.
+
+    Called manually (not via Depends) from the WebSocket handler, so we read
+    the query param off the WebSocket object directly.
+
+    Returns the User if valid, or None if authentication fails (caller should close the socket).
+    """
+    token = websocket.query_params.get("token")
+    if not token:
+        return None
+
+    user_id = verify_token(token)
+    if user_id is None:
+        return None
+
+    async with async_session_factory() as db:
+        user = await get_user_by_id(db, user_id)
+        return user
