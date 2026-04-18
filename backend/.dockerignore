@@ -1,0 +1,44 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Test / cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+test.db
+*.sqlite
+*.sqlite3
+
+# Alembic local state
+# (keep alembic/ sources; drop any stray generated artifacts)
+
+# Docs / IDE
+.vscode/
+.idea/
+*.swp
+
+# Git / CI
+.git
+.gitignore
+.github/
+
+# Local env
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

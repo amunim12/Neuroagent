@@ -1,0 +1,37 @@
+# Production overrides. Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Builds optimized images, drops bind mounts, and removes dev-only flags.
+# Expects DATABASE_URL / REDIS_URL / NEXT_PUBLIC_* to be provided via the
+# environment (e.g. the hosting platform) — this file does not load .env.
+
+services:
+  backend:
+    image: neuroagent-backend:latest
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+    env_file: []
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+  frontend:
+    image: neuroagent-frontend:latest
+    build:
+      context: ./frontend
+      target: runner
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    volumes: []
+    command: ["npm", "start"]
+
+  postgres:
+    restart: unless-stopped
+    ports: []
+
+  redis:
+    restart: unless-stopped
+    ports: []
