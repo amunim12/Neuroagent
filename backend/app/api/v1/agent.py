@@ -13,6 +13,7 @@ from app.dependencies import authenticate_websocket, get_current_user
 from app.schemas.agent import AgentRunRequest, AgentRunResponse
 from app.services.session_service import create_session
 from app.utils.streaming import EventType, format_event, make_stream_callback
+from app.utils.tracing import run_config
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +80,11 @@ async def agent_websocket(websocket: WebSocket, session_id: str):
             "stream_callback": callback,
         }
 
-        # Run the agent graph in a background thread (it's CPU-bound / sync)
+        # Run the agent graph in a background thread (it's CPU-bound / sync).
+        # run_config attaches user/session metadata so LangSmith traces are filterable.
+        config = run_config(session_id=session_id, user_id=str(user.id), goal=goal)
         loop = asyncio.get_running_loop()
-        agent_task = loop.run_in_executor(None, agent_graph.invoke, initial_state)
+        agent_task = loop.run_in_executor(None, lambda: agent_graph.invoke(initial_state, config=config))
 
         # Drain pending events to WebSocket while the agent runs
         while not agent_task.done():

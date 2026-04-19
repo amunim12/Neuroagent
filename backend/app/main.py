@@ -8,16 +8,23 @@ from slowapi.util import get_remote_address
 
 from app.api.v1.router import api_router
 from app.config import settings
-from app.db.base import Base, engine
+from app.db.base import engine
+from app.utils.tracing import configure_tracing
+
+# Activate LangSmith tracing before any LangChain/LangGraph imports run downstream.
+configure_tracing()
 
 limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create tables on startup, dispose engine on shutdown."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Dispose the DB engine on shutdown.
+
+    Schema creation is handled by Alembic migrations — run `alembic upgrade head`
+    before starting the server. Test suites set up their own schema in
+    tests/conftest.py.
+    """
     yield
     await engine.dispose()
 
