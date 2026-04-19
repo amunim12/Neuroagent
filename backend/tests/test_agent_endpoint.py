@@ -19,7 +19,9 @@ TEST_USER = {"email": "agent-user@example.com", "password": "securepassword123"}
 @pytest.mark.asyncio
 async def test_run_agent_requires_auth(client: AsyncClient):
     response = await client.post("/api/v1/agent/run", json={"goal": "Do something"})
-    assert response.status_code == 403
+    # FastAPI < 0.118 returns 403 for missing HTTPBearer credentials; newer
+    # versions return 401. Accept both so the suite works across the pinned range.
+    assert response.status_code in {401, 403}
 
 
 @pytest.mark.asyncio
@@ -56,11 +58,13 @@ async def test_run_agent_rejects_empty_goal(client: AsyncClient):
 
 
 @pytest.fixture
-def sync_client():
+def sync_client(sync_client_db_reset):
     """TestClient without the `with` block so the production lifespan doesn't run.
 
-    Patches the session factory used directly inside the agent endpoint
-    so DB writes hit the same SQLite test DB as conftest.
+    Patches the session factory used directly inside the agent endpoint so DB
+    writes hit the same in-memory SQLite engine as conftest, and depends on
+    ``sync_client_db_reset`` to guarantee a clean schema — the async autouse
+    fixture in conftest does not run for sync tests.
     """
     with (
         patch("app.api.v1.agent.async_session_factory", test_session_factory),

@@ -43,6 +43,9 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 backend/tests/eval/reports/
+*.db
+*.sqlite
+*.sqlite3
 
 # Misc
 *.log

@@ -57,7 +57,9 @@ async def test_get_me_authenticated(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_me_unauthenticated(client: AsyncClient):
     response = await client.get("/api/v1/auth/me")
-    assert response.status_code == 403
+    # FastAPI < 0.118 returns 403 for missing HTTPBearer credentials; newer
+    # versions return 401. Accept both so the suite works across the pinned range.
+    assert response.status_code in {401, 403}
 
 
 @pytest.mark.asyncio
