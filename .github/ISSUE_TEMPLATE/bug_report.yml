@@ -1,0 +1,103 @@
+name: Bug report
+description: Something in NeuroAgent is not behaving the way the docs or code say it should.
+title: "bug: <short description>"
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. A clear, reproducible report makes the difference between a fix in days vs. months.
+
+        Before submitting, please:
+        1. Search [existing issues](https://github.com/amunim12/NeuroAgent/issues?q=is%3Aissue) — it may already be tracked.
+        2. Try to reduce the problem to the smallest goal / input that still reproduces it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence on what went wrong.
+      placeholder: "The planner node returns 0 subtasks when the goal contains a code block."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps so a maintainer can reproduce locally.
+      placeholder: |
+        1. `docker compose up --build`
+        2. Register / login at http://localhost:3000
+        3. Submit the goal: "Explain what this code does: ```print('hi')```"
+        4. Observe the event stream
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What happened instead? Include error messages, stack traces, and relevant log output (backend + browser console).
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit / version
+      description: Output of `git rev-parse HEAD`, or the release tag you're running.
+      placeholder: "v1.0.0 or 4d00458"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - backend / FastAPI
+        - agent graph (LangGraph)
+        - agent tools (Tavily / E2B / Playwright / httpx)
+        - memory (Redis / Pinecone)
+        - frontend (Next.js)
+        - auth (JWT / next-auth)
+        - CI / deploy
+        - docs / README
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, Node version, Docker version (if applicable). Anything non-default in `.env`.
+      placeholder: |
+        - OS: Ubuntu 24.04 / Windows 11 / macOS 14
+        - Python: 3.11.9
+        - Node: 20.11.0
+        - Docker: 27.1.1
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I've redacted any secrets from logs I'm pasting.
+          required: true

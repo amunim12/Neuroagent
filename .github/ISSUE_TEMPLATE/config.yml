@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and discussion
+    url: https://github.com/amunim12/NeuroAgent/discussions
+    about: For open-ended questions, architecture debates, or ideas not yet ready to be filed as a feature request.
+  - name: Security disclosures
+    url: mailto:hamzaahmedsiddiqui03@gmail.com
+    about: Please do not file security issues in the public tracker. Email the maintainer directly.

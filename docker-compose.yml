@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-    image: neuroagent-backend:dev
+    image: ${DOCKER_NAMESPACE:-amunim12}/neuroagent-backend:${IMAGE_TAG:-latest}
     ports:
       - "8000:8000"
     environment:
@@ -29,7 +29,7 @@ services:
     build:
       context: ./frontend
       target: deps
-    image: neuroagent-frontend:dev
+    image: ${DOCKER_NAMESPACE:-amunim12}/neuroagent-frontend:${IMAGE_TAG:-latest}
     working_dir: /app
     ports:
       - "3000:3000"

@@ -1,0 +1,66 @@
+name: Feature request
+description: Propose a new capability or enhancement for NeuroAgent.
+title: "feat: <short description>"
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. The more grounded the proposal is in a real problem you're hitting, the easier it is to evaluate.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that NeuroAgent doesn't do well today?
+      placeholder: "When the agent routes a coding subtask to Groq Llama 3, the tool calls fail because the model doesn't support structured tool calling consistently."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What do you want to change? Be as concrete as you can — sketch the API, the node wiring, the UI, whatever applies.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you think about, and why did you rule them out?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - backend / FastAPI
+        - agent graph (LangGraph)
+        - agent tools
+        - memory
+        - frontend
+        - auth
+        - CI / deploy
+        - docs
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who benefits, how often, and by how much? Is this a blocker, a nice-to-have, or a polish item?
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and discussions for a similar proposal.
+          required: true
+        - label: I'm willing to help review or contribute the change (not required, but appreciated).
+          required: false
