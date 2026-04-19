@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import User
@@ -8,14 +9,19 @@ from app.utils.security import hash_password, verify_password
 
 
 async def create_user(db: AsyncSession, email: str, password: str) -> User:
-    """Register a new user. Raises ValueError if email already taken."""
-    existing = await db.execute(select(User).where(User.email == email))
-    if existing.scalar_one_or_none():
-        raise ValueError("Email already registered")
+    """Register a new user. Raises ValueError if email already taken.
 
+    Atomic: relies on the UNIQUE constraint on ``users.email`` instead of a
+    separate SELECT, which would otherwise leave a TOCTOU race between the
+    existence check and the insert under concurrent registrations.
+    """
     user = User(email=email, hashed_password=hash_password(password))
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise ValueError("Email already registered") from None
     await db.refresh(user)
     return user
 

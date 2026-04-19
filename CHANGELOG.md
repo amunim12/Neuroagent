@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.env.example`: added a `# === Docker image source ===` section documenting `DOCKER_NAMESPACE` and `IMAGE_TAG` so forks can point at their own Docker Hub namespace or pin a specific commit SHA.
 
 ### Fixed
+- `backend/app/services/auth_service.py`: `create_user` now relies on the `users.email` UNIQUE constraint (catch `IntegrityError` on commit) instead of a separate SELECT. Removes a TOCTOU race between the existence check and the insert, and sidesteps a CI-only SQLAlchemy session-state quirk where the pre-check SELECT was occasionally flagging fresh per-test databases as already containing the registration.
 - `backend/tests/conftest.py`: switched the test database from file-backed `./test.db` to in-memory SQLite with `StaticPool`, dropped the deprecated custom `event_loop` fixture, and added a `sync_client_db_reset` fixture so TestClient-based WebSocket tests get a clean schema (the async autouse fixture doesn't run around sync tests). Previously caused CI failures where `register` returned 409 on a "fresh" DB and registrations bled between test files.
 - Test assertions for missing `HTTPBearer` credentials now accept both 401 and 403 — FastAPI ≥ 0.118 returns 401, older versions return 403, and `requirements.txt` pins a range that spans both.
 - `frontend/public/.gitkeep`: added so the multi-stage Docker build's `COPY --from=builder /app/public ./public` step resolves. Next.js treats `public/` as optional, but the Dockerfile required it.
