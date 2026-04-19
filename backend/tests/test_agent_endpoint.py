@@ -7,12 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from app.main import app
-from tests.conftest import test_session_factory
-
-# Unique per-test emails keep the suite robust against any cross-test state
-# leakage (pytest-asyncio's event-loop scoping doesn't always let an autouse
-# fixture cleanly reset a shared test DB between tests).
+# Unique per-test emails are belt-and-suspenders on top of the per-test DB
+# isolation provided by the fixtures in conftest.py.
 PASSWORD = "securepassword123"
 
 
@@ -62,22 +58,8 @@ async def test_run_agent_rejects_empty_goal(client: AsyncClient):
 
 
 # === WebSocket ===
-
-
-@pytest.fixture
-def sync_client(sync_client_db_reset):
-    """TestClient without the `with` block so the production lifespan doesn't run.
-
-    Patches the session factory used directly inside the agent endpoint so DB
-    writes hit the same in-memory SQLite engine as conftest, and depends on
-    ``sync_client_db_reset`` to guarantee a clean schema — the async autouse
-    fixture in conftest does not run for sync tests.
-    """
-    with (
-        patch("app.api.v1.agent.async_session_factory", test_session_factory),
-        patch("app.dependencies.async_session_factory", test_session_factory),
-    ):
-        yield TestClient(app)
+# The sync_client fixture lives in conftest.py so it can share the per-test
+# engine machinery used by the async tests.
 
 
 def _register_and_get_token(sync_client: TestClient) -> str:
