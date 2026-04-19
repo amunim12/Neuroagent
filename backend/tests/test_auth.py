@@ -1,12 +1,21 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
-TEST_USER = {"email": "test@example.com", "password": "securepassword123"}
+# Unique per-test emails keep the suite robust against any cross-test state
+# leakage (pytest-asyncio's event-loop scoping doesn't always let an autouse
+# fixture cleanly reset a shared test DB between tests).
+PASSWORD = "securepassword123"
+
+
+def _make_user() -> dict[str, str]:
+    return {"email": f"test-{uuid.uuid4()}@example.com", "password": PASSWORD}
 
 
 @pytest.mark.asyncio
 async def test_register_returns_token(client: AsyncClient):
-    response = await client.post("/api/v1/auth/register", json=TEST_USER)
+    response = await client.post("/api/v1/auth/register", json=_make_user())
     assert response.status_code == 201
     data = response.json()
     assert "access_token" in data
@@ -15,15 +24,17 @@ async def test_register_returns_token(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email_fails(client: AsyncClient):
-    await client.post("/api/v1/auth/register", json=TEST_USER)
-    response = await client.post("/api/v1/auth/register", json=TEST_USER)
+    user = _make_user()
+    await client.post("/api/v1/auth/register", json=user)
+    response = await client.post("/api/v1/auth/register", json=user)
     assert response.status_code == 409
 
 
 @pytest.mark.asyncio
 async def test_login_valid_credentials(client: AsyncClient):
-    await client.post("/api/v1/auth/register", json=TEST_USER)
-    response = await client.post("/api/v1/auth/login", json=TEST_USER)
+    user = _make_user()
+    await client.post("/api/v1/auth/register", json=user)
+    response = await client.post("/api/v1/auth/login", json=user)
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
@@ -31,26 +42,34 @@ async def test_login_valid_credentials(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_login_invalid_password(client: AsyncClient):
-    await client.post("/api/v1/auth/register", json=TEST_USER)
-    response = await client.post("/api/v1/auth/login", json={"email": TEST_USER["email"], "password": "wrongpassword"})
+    user = _make_user()
+    await client.post("/api/v1/auth/register", json=user)
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": user["email"], "password": "wrongpassword"},
+    )
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(client: AsyncClient):
-    response = await client.post("/api/v1/auth/login", json={"email": "nobody@example.com", "password": "whatever"})
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": f"nobody-{uuid.uuid4()}@example.com", "password": "whatever"},
+    )
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_get_me_authenticated(client: AsyncClient):
-    register_resp = await client.post("/api/v1/auth/register", json=TEST_USER)
+    user = _make_user()
+    register_resp = await client.post("/api/v1/auth/register", json=user)
     token = register_resp.json()["access_token"]
 
     response = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == TEST_USER["email"]
+    assert data["email"] == user["email"]
     assert "id" in data
 
 

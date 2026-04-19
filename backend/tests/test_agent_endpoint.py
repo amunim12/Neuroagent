@@ -10,7 +10,14 @@ from httpx import AsyncClient
 from app.main import app
 from tests.conftest import test_session_factory
 
-TEST_USER = {"email": "agent-user@example.com", "password": "securepassword123"}
+# Unique per-test emails keep the suite robust against any cross-test state
+# leakage (pytest-asyncio's event-loop scoping doesn't always let an autouse
+# fixture cleanly reset a shared test DB between tests).
+PASSWORD = "securepassword123"
+
+
+def _make_user() -> dict[str, str]:
+    return {"email": f"agent-user-{uuid.uuid4()}@example.com", "password": PASSWORD}
 
 
 # === REST fallback ===
@@ -26,7 +33,7 @@ async def test_run_agent_requires_auth(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_run_agent_returns_session_id(client: AsyncClient):
-    register = await client.post("/api/v1/auth/register", json=TEST_USER)
+    register = await client.post("/api/v1/auth/register", json=_make_user())
     token = register.json()["access_token"]
 
     response = await client.post(
@@ -43,7 +50,7 @@ async def test_run_agent_returns_session_id(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_run_agent_rejects_empty_goal(client: AsyncClient):
-    register = await client.post("/api/v1/auth/register", json=TEST_USER)
+    register = await client.post("/api/v1/auth/register", json=_make_user())
     token = register.json()["access_token"]
 
     response = await client.post(
@@ -74,7 +81,7 @@ def sync_client(sync_client_db_reset):
 
 
 def _register_and_get_token(sync_client: TestClient) -> str:
-    response = sync_client.post("/api/v1/auth/register", json=TEST_USER)
+    response = sync_client.post("/api/v1/auth/register", json=_make_user())
     assert response.status_code == 201
     return response.json()["access_token"]
 
