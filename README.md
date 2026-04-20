@@ -21,7 +21,7 @@ In three bullets, non-technical:
 - It uses real tools — the web, a code sandbox, a browser — to do the work, not just talk about it.
 - You watch it think, step by step, and get a written answer you can act on.
 
-> **Live demo:** _coming soon — this will point to the hosted Railway + Vercel deployment once it's live. In the meantime, `docker compose up` gets you a working stack in under a minute._
+> **Live demo:** _coming soon — this will point to the hosted Railway deployment once it's live. In the meantime, `docker compose up` gets you a working stack in under a minute._
 
 ---
 
@@ -34,7 +34,7 @@ In three bullets, non-technical:
 - **Real-time streaming UI:** WebSocket pipe surfaces planning, model routing, tool calls, and the final answer as the agent runs.
 - **LangSmith-native observability:** every run is traced with user/session metadata so failures are filterable in the dashboard (see [`docs/images/langsmith-trace.png`](docs/images/langsmith-trace.png) for a representative capture).
 - **Evaluation benchmark:** 20-task offline suite with deterministic scoring, latency, and token accounting.
-- **Production-grade infra:** multi-stage Docker builds, non-root containers, Alembic migrations, GitHub Actions CI/CD, Railway + Vercel deploy workflows.
+- **Production-grade infra:** multi-stage Docker builds, non-root containers, Alembic migrations, GitHub Actions CI/CD, Railway deploy workflow (backend + frontend).
 
 ---
 
@@ -76,7 +76,7 @@ In three bullets, non-technical:
 | Models            | OpenAI GPT-4o, Anthropic Claude Sonnet, Groq Llama 3                      |
 | Tools             | Tavily (search), E2B (code sandbox), Playwright (browser), httpx (API)    |
 | Data              | PostgreSQL 16, Redis 7, Pinecone                                          |
-| Infra             | Docker Compose, Railway (backend), Vercel (frontend), GitHub Actions      |
+| Infra             | Docker Compose, Railway (backend + frontend), GitHub Actions              |
 
 See [docs/adr/0001-langgraph-agent-architecture.md](docs/adr/0001-langgraph-agent-architecture.md) for the rationale behind the core architectural choices.
 
@@ -262,14 +262,31 @@ The numbers above are intentionally empty in the repo — they reflect your own 
 
 ## 🚢 Deployment
 
-**Hosted demo:** _not yet published — see the note near the top of this README. When it goes live, this section will link to `https://neuroagent.vercel.app` (frontend) and `https://neuroagent.up.railway.app` (backend)._
+**Hosted demo:** _not yet published — see the note near the top of this README. When it goes live, this section will link to the two Railway services (backend + frontend)._
+
+Production deploys follow a **registry-pull** flow — GitHub builds images and pushes them to Docker Hub; Railway pulls from Docker Hub and redeploys automatically when a new `:latest` digest appears. GitHub never needs Railway credentials.
 
 The repo ships with two GitHub Actions workflows:
 
 - [`ci.yml`](.github/workflows/ci.yml) — lint, type-check, migration dry-run, pytest, Docker build on every push / PR.
-- [`deploy.yml`](.github/workflows/deploy.yml) — deploys backend to Railway and frontend to Vercel on merges to `main`. Both jobs gate on repository variables (`vars.DEPLOY_BACKEND_ENABLED`, `vars.DEPLOY_FRONTEND_ENABLED`) so the workflow is a no-op until you're ready.
+- [`docker-publish.yml`](.github/workflows/docker-publish.yml) — matrix workflow that builds `amunim12/neuroagent-backend` and `amunim12/neuroagent-frontend` on merges to `main` (and on `v*.*.*` tags) and pushes them to Docker Hub with `latest`, semver, branch, and `sha-<short>` tags. Gated by `vars.DOCKER_PUBLISH_ENABLED` so it's a no-op until you're ready.
 
-Required secrets: `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+**GitHub repo settings required:**
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `DOCKERHUB_USERNAME` | your Docker Hub username (e.g. `amunim12`) |
+| Secret | `DOCKERHUB_TOKEN` | Docker Hub access token with Read/Write/Delete |
+| Variable | `DOCKER_PUBLISH_ENABLED` | `true` |
+
+**Railway setup (one-time, in the Railway dashboard):**
+
+1. Create a project with two services. For each one, choose **Deploy from Docker image**:
+   - `backend` → `amunim12/neuroagent-backend:latest`
+   - `frontend` → `amunim12/neuroagent-frontend:latest`
+2. Add **PostgreSQL** and **Redis** plugins in the same project; reference them from the backend service as `${{Postgres.DATABASE_URL}}` / `${{Redis.REDIS_URL}}` (remember to prefix the DB URL with `postgresql+asyncpg://` for the async driver).
+3. Set the remaining env vars from [`.env.example`](.env.example) on the backend service, and `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` on the frontend service (pointing at the backend's generated Railway domain).
+4. Service settings → **Source: Docker Image** → enable **automatic deploys** so Railway redeploys when the `:latest` digest changes.
 
 For production docker-compose (multi-worker Uvicorn, non-dev Next build) use:
 

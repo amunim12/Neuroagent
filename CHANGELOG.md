@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/workflows/docker-publish.yml` — matrix workflow that builds `backend` and `frontend` images on GitHub-hosted runners and pushes them to Docker Hub (`amunim12/neuroagent-backend`, `amunim12/neuroagent-frontend`) with `latest`, semver, branch, and `sha-<short>` tags. Gated by the `DOCKER_PUBLISH_ENABLED` repo variable so maintainers can pause it without deleting the workflow.
 
 ### Changed
+- README: rewrote the Deployment section to describe the registry-pull flow — GitHub Actions publishes images to Docker Hub, Railway pulls `:latest` and auto-redeploys on new digests. Documents the three GitHub repo settings actually required (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `DOCKER_PUBLISH_ENABLED`) and the Railway service setup.
+- README: removed Vercel references from the live-demo note, the features bullet, and the tech-stack table so they match the Docker-Hub → Railway deploy path.
+
+### Removed
+- `.github/workflows/deploy.yml`: deleted. It used `railway up` to push source from GitHub, which is redundant under the registry-pull flow — Railway pulls directly from Docker Hub and redeploys on new digests, so GitHub no longer needs Railway credentials. Drops the `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets and the `DEPLOY_BACKEND_ENABLED` / `DEPLOY_FRONTEND_ENABLED` repo variables from the required-settings list.
 - README: added the full tech-stack badge row, a hero demo GIF slot, a plain-language "what it does" summary, a live-demo placeholder, a benchmark categories/results table, and an expanded project-layout tree that covers `docs/` and `.github/` subfolders.
 - README: split the Docker quickstart into "3a. Pull pre-built images" (the fast path, no local build) and "3b. Build from source" (fallback for contributors), with links to the Docker Hub repositories and the publish workflow.
 - `docker-compose.yml`: backend and frontend services now reference `${DOCKER_NAMESPACE:-amunim12}/neuroagent-*:${IMAGE_TAG:-latest}` so `docker compose pull` works without a local build. The `build:` blocks remain as a fallback.
