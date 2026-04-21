@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -17,6 +18,15 @@ class Settings(BaseSettings):
 
     # Databases
     DATABASE_URL: str = "postgresql+psycopg://postgres:password@localhost:5432/neuroagent"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalize_db_url(cls, v: str) -> str:
+        """Rewrite Railway's plain postgresql:// URL to use the psycopg v3 driver."""
+        for prefix in ("postgresql://", "postgres://"):
+            if v.startswith(prefix):
+                return v.replace(prefix, "postgresql+psycopg://", 1)
+        return v
     REDIS_URL: str = "redis://localhost:6379/0"
     PINECONE_API_KEY: str = ""
     PINECONE_INDEX_NAME: str = "neuroagent-memory"
