@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     E2B_API_KEY: str = ""
 
     # Databases
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/neuroagent"
+    DATABASE_URL: str = "postgresql+psycopg://postgres:password@localhost:5432/neuroagent"
     REDIS_URL: str = "redis://localhost:6379/0"
     PINECONE_API_KEY: str = ""
     PINECONE_INDEX_NAME: str = "neuroagent-memory"
