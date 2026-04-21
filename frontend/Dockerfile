@@ -25,6 +25,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000
+# Railway overrides PORT at runtime — Next.js reads it automatically.
 
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S nextjs -u 1001
@@ -38,7 +39,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
 USER nextjs
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD wget --spider --quiet http://localhost:3000/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget --spider --quiet http://localhost:${PORT:-3000}/ || exit 1
 
 CMD ["npm", "start"]
