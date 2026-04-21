@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -26,15 +28,34 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # App
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:3004",
+    ]
     ENVIRONMENT: str = "development"
 
-    # LangSmith
-    LANGCHAIN_TRACING_V2: bool = True
+    # Default model for planner, synthesizer, and the router's ambiguous-task
+    # fallback. Override via env to steer the agent away from a provider
+    # whose quota is exhausted without rewriting the routing heuristics.
+    # Free-tier options run through Groq; the OpenAI and Anthropic entries
+    # are only viable if you supply a paid API key with remaining quota.
+    DEFAULT_AGENT_MODEL: Literal[
+        "groq-llama3", "gpt-4o", "claude-sonnet"
+    ] = "groq-llama3"
+
+    # LangSmith — .env may use either LANGCHAIN_ or LANGSMITH_ prefix
+    LANGCHAIN_TRACING_V2: bool = False
     LANGCHAIN_API_KEY: str = ""
     LANGCHAIN_PROJECT: str = "neuroagent"
+    LANGSMITH_TRACING: bool = False
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_PROJECT: str = ""
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

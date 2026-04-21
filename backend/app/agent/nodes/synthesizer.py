@@ -2,19 +2,18 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app.agent.models.clients import get_llm
 from app.agent.state import AgentState
+from app.config import settings
 
-SYNTHESIZER_SYSTEM_PROMPT = """You are a helpful AI assistant. Synthesize the results of all completed \
-subtasks into a single, comprehensive, well-structured final answer for the user's goal.
-Be specific, accurate, and actionable. Format with markdown when appropriate."""
+SYNTHESIZER_SYSTEM_PROMPT = """Synthesize the subtask results into a clear, well-structured answer. Use markdown."""
 
 
 def synthesizer_node(state: AgentState) -> dict:
     """Combine all tool outputs into a final coherent answer."""
-    llm = get_llm("gpt-4o", streaming=False)
+    llm = get_llm(settings.DEFAULT_AGENT_MODEL, streaming=False)
 
     tool_outputs = state.get("tool_outputs", [])
     results_text = "\n\n".join(
-        f"Step {i + 1} ({r['task']}):\n{r['output']}" for i, r in enumerate(tool_outputs)
+        f"Step {i + 1} ({r['task']}):\n{r['output'][:600]}" for i, r in enumerate(tool_outputs)
     )
 
     error = state.get("error")

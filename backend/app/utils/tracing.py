@@ -16,27 +16,35 @@ logger = logging.getLogger(__name__)
 def configure_tracing() -> bool:
     """Export LangSmith environment variables so LangChain enables tracing.
 
-    No-op when ``LANGCHAIN_API_KEY`` is empty — this avoids noisy warnings on
-    environments without a LangSmith project (CI, local dev without a key).
+    Accepts both LANGCHAIN_ and LANGSMITH_ prefixed variables so the same
+    .env file works regardless of which naming convention was used.
 
     Returns:
         True if tracing was activated, False otherwise.
     """
-    api_key = settings.LANGCHAIN_API_KEY.strip()
+    # Resolve API key — prefer LANGSMITH_ prefix (newer convention)
+    api_key = (settings.LANGSMITH_API_KEY or settings.LANGCHAIN_API_KEY).strip()
     if not api_key:
-        logger.info("LangSmith tracing disabled (no LANGCHAIN_API_KEY set)")
+        logger.info("LangSmith tracing disabled (no API key set)")
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
         return False
 
-    os.environ["LANGCHAIN_TRACING_V2"] = "true" if settings.LANGCHAIN_TRACING_V2 else "false"
-    os.environ["LANGCHAIN_API_KEY"] = api_key
-    os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
+    # Resolve tracing flag — either prefix activates it
+    tracing_on = settings.LANGSMITH_TRACING or settings.LANGCHAIN_TRACING_V2
 
-    if settings.LANGCHAIN_TRACING_V2:
-        logger.info("LangSmith tracing enabled (project=%s)", settings.LANGCHAIN_PROJECT)
+    # Resolve project name
+    project = (settings.LANGSMITH_PROJECT or settings.LANGCHAIN_PROJECT or "neuroagent").strip('"')
+
+    os.environ["LANGCHAIN_TRACING_V2"] = "true" if tracing_on else "false"
+    os.environ["LANGCHAIN_API_KEY"] = api_key
+    os.environ["LANGCHAIN_PROJECT"] = project
+    os.environ["LANGCHAIN_ENDPOINT"] = settings.LANGSMITH_ENDPOINT
+
+    if tracing_on:
+        logger.info("LangSmith tracing enabled (project=%s)", project)
         return True
 
-    logger.info("LangSmith credentials loaded but tracing flag is false")
+    logger.info("LangSmith API key loaded but tracing flag is false")
     return False
 
 

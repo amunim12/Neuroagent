@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 
 from langchain.tools import tool
@@ -12,30 +11,35 @@ VALID_ACTIONS = {"navigate", "scrape", "click", "fill"}
 
 
 @tool
-def browser_tool(action: str) -> str:
+def browser_tool(
+    action: str,
+    url: str,
+    selector: str | None = None,
+    value: str | None = None,
+) -> str:
     """Control a web browser to navigate URLs, scrape content, fill forms, or click elements.
-    Input: JSON with keys: action (navigate|scrape|click|fill), url, selector, value.
-    Returns: page content or action result."""
-    try:
-        params = json.loads(action)
-    except json.JSONDecodeError:
-        return "Invalid JSON input. Expected: {\"action\": \"...\", \"url\": \"...\"}."
 
-    action_type = params.get("action", "navigate")
-    if action_type not in VALID_ACTIONS:
-        return f"Unknown action '{action_type}'. Valid actions: {', '.join(sorted(VALID_ACTIONS))}."
+    Args:
+        action: One of 'navigate', 'scrape', 'click', 'fill'.
+        url: Page URL to open.
+        selector: CSS selector (required for 'click' and 'fill').
+        value: Text to type (required for 'fill').
 
-    url = params.get("url", "")
+    Returns: page content or action result.
+    """
+    if action not in VALID_ACTIONS:
+        return f"Unknown action '{action}'. Valid actions: {', '.join(sorted(VALID_ACTIONS))}."
+
     if not url:
         return "Error: 'url' is required."
 
-    # Validate required fields for specific actions before launching a browser
-    if action_type == "click" and not params.get("selector"):
+    if action == "click" and not selector:
         return "Error: 'selector' is required for click action."
-    if action_type == "fill" and (not params.get("selector") or not params.get("value")):
+    if action == "fill" and (not selector or not value):
         return "Error: 'selector' and 'value' are required for fill action."
 
-    # Use an existing event loop if available, otherwise create one
+    params = {"action": action, "url": url, "selector": selector or "", "value": value or ""}
+
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -43,7 +47,6 @@ def browser_tool(action: str) -> str:
 
     try:
         if loop and loop.is_running():
-            # Running inside an async context (e.g., FastAPI) -- use a new thread
             import concurrent.futures
 
             with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -80,18 +83,14 @@ async def _browser_action(params: dict) -> str:
                 return truncated
 
             if action == "click":
-                selector = params.get("selector", "")
-                if not selector:
-                    return "Error: 'selector' is required for click action."
+                selector = params["selector"]
                 await page.goto(url)
                 await page.click(selector)
                 return f"Clicked element: {selector}"
 
             if action == "fill":
-                selector = params.get("selector", "")
-                value = params.get("value", "")
-                if not selector or not value:
-                    return "Error: 'selector' and 'value' are required for fill action."
+                selector = params["selector"]
+                value = params["value"]
                 await page.goto(url)
                 await page.fill(selector, value)
                 return f"Filled {selector} with value"

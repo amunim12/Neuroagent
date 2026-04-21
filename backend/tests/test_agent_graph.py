@@ -2,38 +2,39 @@
 
 from unittest.mock import MagicMock
 
-from app.agent.models.clients import MODEL_CLAUDE_SONNET, MODEL_GPT4O, MODEL_GROQ_LLAMA3
+from app.agent.models.clients import MODEL_GPT4O, MODEL_GROQ_LLAMA3
 from app.agent.models.router import route_model_for_task
 from app.agent.nodes.router import model_router_node
 from app.agent.state import AgentState
+from app.config import settings
 
 # --- Model routing tests ---
 
 
 class TestModelRouting:
-    def test_simple_query_routes_to_groq(self):
-        assert route_model_for_task("summarize the latest Python release notes") == MODEL_GROQ_LLAMA3
+    def test_simple_query_routes_to_default(self):
+        assert route_model_for_task("summarize the latest Python release notes") == settings.DEFAULT_AGENT_MODEL
 
-    def test_search_query_routes_to_groq(self):
-        assert route_model_for_task("search for best REST API practices") == MODEL_GROQ_LLAMA3
+    def test_search_query_routes_to_default(self):
+        assert route_model_for_task("search for best REST API practices") == settings.DEFAULT_AGENT_MODEL
 
-    def test_what_is_routes_to_groq(self):
-        assert route_model_for_task("what is dependency injection") == MODEL_GROQ_LLAMA3
+    def test_what_is_routes_to_default(self):
+        assert route_model_for_task("what is dependency injection") == settings.DEFAULT_AGENT_MODEL
 
-    def test_coding_task_routes_to_claude(self):
-        assert route_model_for_task("write a Python function to parse CSV") == MODEL_CLAUDE_SONNET
+    def test_coding_task_routes_to_llama(self):
+        assert route_model_for_task("write a Python function to parse CSV") == MODEL_GROQ_LLAMA3
 
-    def test_debug_task_routes_to_claude(self):
-        assert route_model_for_task("debug the authentication middleware") == MODEL_CLAUDE_SONNET
+    def test_debug_task_routes_to_llama(self):
+        assert route_model_for_task("debug the authentication middleware") == MODEL_GROQ_LLAMA3
 
-    def test_analyze_task_routes_to_claude(self):
-        assert route_model_for_task("analyze the performance of this query") == MODEL_CLAUDE_SONNET
+    def test_analyze_task_routes_to_llama(self):
+        assert route_model_for_task("analyze the performance of this query") == MODEL_GROQ_LLAMA3
 
-    def test_complex_task_routes_to_gpt4o(self):
-        assert route_model_for_task("create a comprehensive business strategy") == MODEL_GPT4O
+    def test_complex_task_routes_to_default(self):
+        assert route_model_for_task("create a comprehensive business strategy") == settings.DEFAULT_AGENT_MODEL
 
-    def test_ambiguous_task_routes_to_gpt4o(self):
-        assert route_model_for_task("help me plan my project roadmap") == MODEL_GPT4O
+    def test_ambiguous_task_routes_to_default(self):
+        assert route_model_for_task("help me plan my project roadmap") == settings.DEFAULT_AGENT_MODEL
 
 
 # --- Router node tests ---
@@ -67,7 +68,7 @@ class TestRouterNode:
     def test_routes_second_subtask(self):
         state = self._make_state(subtasks=["search for docs", "write a unit test"], current_task_index=1)
         result = model_router_node(state)
-        assert result["selected_model"] == MODEL_CLAUDE_SONNET
+        assert result["selected_model"] == MODEL_GROQ_LLAMA3
 
     def test_falls_back_to_goal_when_no_subtasks(self):
         state = self._make_state(subtasks=[], goal="summarize this article")

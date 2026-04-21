@@ -3,7 +3,6 @@
 All tests mock external services (Tavily, E2B, Playwright, httpx) so no API keys are needed.
 """
 
-import json
 from unittest.mock import MagicMock, patch
 
 from app.agent.tools.api_caller import api_caller_tool
@@ -134,31 +133,24 @@ class TestCodeExecutorTool:
 
 
 class TestBrowserTool:
-    def test_invalid_json_returns_error(self):
-        result = browser_tool.invoke({"action": "not json"})
-        assert "Invalid JSON" in result
-
     def test_unknown_action_returns_error(self):
-        result = browser_tool.invoke({"action": json.dumps({"action": "destroy", "url": "http://example.com"})})
+        result = browser_tool.invoke({"action": "destroy", "url": "http://example.com"})
         assert "Unknown action" in result
 
     def test_missing_url_returns_error(self):
-        result = browser_tool.invoke({"action": json.dumps({"action": "navigate"})})
+        result = browser_tool.invoke({"action": "navigate", "url": ""})
         assert "url" in result.lower()
 
     def test_click_without_selector_returns_error(self):
-        payload = json.dumps({"action": "click", "url": "http://example.com"})
-        result = browser_tool.invoke({"action": payload})
+        result = browser_tool.invoke({"action": "click", "url": "http://example.com"})
         assert "selector" in result.lower()
 
     def test_fill_without_value_returns_error(self):
-        payload = json.dumps({"action": "fill", "url": "http://example.com", "selector": "#name"})
-        result = browser_tool.invoke({"action": payload})
+        result = browser_tool.invoke({"action": "fill", "url": "http://example.com", "selector": "#name"})
         assert "required" in result.lower()
 
     def test_fill_without_selector_returns_error(self):
-        payload = json.dumps({"action": "fill", "url": "http://example.com", "value": "test"})
-        result = browser_tool.invoke({"action": payload})
+        result = browser_tool.invoke({"action": "fill", "url": "http://example.com", "value": "test"})
         assert "required" in result.lower()
 
 
@@ -166,16 +158,12 @@ class TestBrowserTool:
 
 
 class TestApiCallerTool:
-    def test_invalid_json_returns_error(self):
-        result = api_caller_tool.invoke({"request": "not json"})
-        assert "Invalid JSON" in result
-
     def test_invalid_method_returns_error(self):
-        result = api_caller_tool.invoke({"request": json.dumps({"method": "YEET", "url": "http://example.com"})})
+        result = api_caller_tool.invoke({"method": "YEET", "url": "http://example.com"})
         assert "Invalid HTTP method" in result
 
     def test_missing_url_returns_error(self):
-        result = api_caller_tool.invoke({"request": json.dumps({"method": "GET"})})
+        result = api_caller_tool.invoke({"method": "GET", "url": ""})
         assert "url" in result.lower()
 
     @patch("app.agent.tools.api_caller.httpx.Client")
@@ -189,8 +177,7 @@ class TestApiCallerTool:
         mock_response.text = '{"data": "hello"}'
         mock_client.request.return_value = mock_response
 
-        payload = json.dumps({"method": "GET", "url": "https://api.example.com/data"})
-        result = api_caller_tool.invoke({"request": payload})
+        result = api_caller_tool.invoke({"method": "GET", "url": "https://api.example.com/data"})
 
         assert "200" in result
         assert "hello" in result
@@ -206,8 +193,11 @@ class TestApiCallerTool:
         mock_response.text = '{"id": 1}'
         mock_client.request.return_value = mock_response
 
-        payload = json.dumps({"method": "POST", "url": "https://api.example.com/items", "body": {"name": "test"}})
-        result = api_caller_tool.invoke({"request": payload})
+        result = api_caller_tool.invoke({
+            "method": "POST",
+            "url": "https://api.example.com/items",
+            "body": {"name": "test"},
+        })
 
         assert "201" in result
         mock_client.request.assert_called_once()
@@ -223,8 +213,7 @@ class TestApiCallerTool:
         mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
         mock_client.request.side_effect = httpx.TimeoutException("timed out")
 
-        payload = json.dumps({"method": "GET", "url": "https://slow.example.com"})
-        result = api_caller_tool.invoke({"request": payload})
+        result = api_caller_tool.invoke({"method": "GET", "url": "https://slow.example.com"})
 
         assert "timed out" in result.lower()
 
@@ -239,7 +228,6 @@ class TestApiCallerTool:
         mock_response.text = "x" * 5000
         mock_client.request.return_value = mock_response
 
-        payload = json.dumps({"method": "GET", "url": "https://api.example.com/big"})
-        result = api_caller_tool.invoke({"request": payload})
+        result = api_caller_tool.invoke({"method": "GET", "url": "https://api.example.com/big"})
 
         assert "truncated" in result

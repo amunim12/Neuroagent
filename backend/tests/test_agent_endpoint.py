@@ -1,7 +1,7 @@
 """Tests for the agent WebSocket and REST endpoints."""
 
 import uuid
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -89,12 +89,12 @@ def test_websocket_rejects_empty_goal(sync_client):
 @patch("app.api.v1.agent.agent_graph")
 def test_websocket_streams_completion(mock_graph, sync_client):
     """Happy path: agent runs, final_answer persists, COMPLETE event is emitted."""
-    mock_graph.invoke.return_value = {
+    mock_graph.ainvoke = AsyncMock(return_value={
         "goal": "Test goal",
         "final_answer": "All done.",
         "error": None,
         "is_complete": True,
-    }
+    })
 
     token = _register_and_get_token(sync_client)
     session_id = str(uuid.uuid4())
@@ -121,12 +121,12 @@ def test_websocket_streams_completion(mock_graph, sync_client):
 @patch("app.api.v1.agent.agent_graph")
 def test_websocket_reports_agent_error(mock_graph, sync_client):
     """When the graph sets an error, final status is 'failed'."""
-    mock_graph.invoke.return_value = {
+    mock_graph.ainvoke = AsyncMock(return_value={
         "goal": "Test goal",
         "final_answer": "",
         "error": "Model unavailable",
         "is_complete": False,
-    }
+    })
 
     token = _register_and_get_token(sync_client)
     session_id = str(uuid.uuid4())

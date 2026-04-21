@@ -6,8 +6,8 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-MAX_RESULTS = 5
-MAX_CONTENT_PREVIEW = 300
+MAX_RESULTS = 3
+MAX_CONTENT_PREVIEW = 200
 
 
 @tool
@@ -24,7 +24,7 @@ def web_search_tool(query: str) -> str:
         client = TavilyClient(api_key=settings.TAVILY_API_KEY)
         response = client.search(
             query=query.strip(),
-            search_depth="advanced",
+            search_depth="basic",
             max_results=MAX_RESULTS,
             include_answer=True,
         )

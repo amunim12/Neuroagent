@@ -80,11 +80,12 @@ async def agent_websocket(websocket: WebSocket, session_id: str):
             "stream_callback": callback,
         }
 
-        # Run the agent graph in a background thread (it's CPU-bound / sync).
+        # Run the agent graph as an asyncio task. The graph has async nodes
+        # (memory reader/writer), so we must use ainvoke — the sync .invoke
+        # path raises "No synchronous function provided" when it hits them.
         # run_config attaches user/session metadata so LangSmith traces are filterable.
         config = run_config(session_id=session_id, user_id=str(user.id), goal=goal)
-        loop = asyncio.get_running_loop()
-        agent_task = loop.run_in_executor(None, lambda: agent_graph.invoke(initial_state, config=config))
+        agent_task = asyncio.create_task(agent_graph.ainvoke(initial_state, config=config))
 
         # Drain pending events to WebSocket while the agent runs
         while not agent_task.done():

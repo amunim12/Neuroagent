@@ -1,20 +1,14 @@
-name: Docker publish
+name: Build → Docker Hub → Railway
 
-# Builds the backend and frontend images on GitHub's runners and pushes them
-# to Docker Hub. Locally, users can then `docker compose pull` the pre-built
-# images instead of rebuilding, which matters for contributors on small disks
-# or slow machines.
+# Triggered only after CI passes on main, or manually.
+# Pattern: push to GitHub → CI → build Docker images → push to Docker Hub → redeploy on Railway.
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
     branches: [main]
-    tags: ["v*.*.*"]
+    types: [completed]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Extra tag to publish (optional, in addition to latest + git sha)."
-        required: false
-        type: string
 
 concurrency:
   group: docker-publish-${{ github.ref }}
@@ -24,11 +18,14 @@ permissions:
   contents: read
 
 jobs:
+  # ── 1. Build + push images ──────────────────────────────────────────────────
   publish:
     name: Build & push ${{ matrix.service }}
     runs-on: ubuntu-latest
-    # Lets maintainers silence the workflow without deleting it.
-    if: ${{ vars.DOCKER_PUBLISH_ENABLED == 'true' }}
+    # Only run when CI succeeded (workflow_run trigger) or manual dispatch.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -39,6 +36,7 @@ jobs:
           - service: frontend
             context: ./frontend
             image: amunim12/neuroagent-frontend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -60,14 +58,11 @@ jobs:
         with:
           images: ${{ matrix.image }}
           tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and push backend
+        if: matrix.service == 'backend'
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
@@ -75,6 +70,39 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
           provenance: false
+
+      - name: Build and push frontend
+        if: matrix.service == 'frontend'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          provenance: false
+          # NEXT_PUBLIC_* vars are baked into the image at build time.
+          # Set RAILWAY_BACKEND_URL in GitHub Actions variables to point at
+          # your Railway backend service public URL.
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.RAILWAY_BACKEND_URL }}
+            NEXT_PUBLIC_WS_URL=${{ vars.RAILWAY_BACKEND_WS_URL }}
+
+  # ── 2. Trigger Railway redeploy ─────────────────────────────────────────────
+  deploy:
+    name: Redeploy on Railway
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Redeploy backend
+        if: ${{ vars.RAILWAY_BACKEND_WEBHOOK != '' }}
+        run: curl -s -X POST "${{ vars.RAILWAY_BACKEND_WEBHOOK }}"
+
+      - name: Redeploy frontend
+        if: ${{ vars.RAILWAY_FRONTEND_WEBHOOK != '' }}
+        run: curl -s -X POST "${{ vars.RAILWAY_FRONTEND_WEBHOOK }}"
