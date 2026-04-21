@@ -7,10 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps: build tools for native wheels, curl for healthcheck
+# System deps: build tools for native wheels, curl for healthcheck,
+# libpq5 for psycopg[asyncio] (pure-Python psycopg v3 needs the libpq shared lib)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         build-essential \
+        libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps first so the layer is cached across code changes
