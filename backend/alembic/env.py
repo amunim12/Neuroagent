@@ -1,5 +1,10 @@
 import asyncio
+import sys
 from logging.config import fileConfig
+
+# psycopg v3 async requires SelectorEventLoop on Windows
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
