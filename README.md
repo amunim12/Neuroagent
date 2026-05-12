@@ -11,7 +11,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC.svg)](https://tailwindcss.com/)
 
-![NeuroAgent live demo](docs/images/demo.gif)
+![NeuroAgent live demo](docs/architecture/demo.gif)
 
 NeuroAgent is a full-stack autonomous AI agent. It accepts a natural-language goal, decomposes it into subtasks, routes each step to the most cost-effective model, uses real tools (web search, sandboxed code execution, browser automation, HTTP calls), remembers what it has learned via short-term (Redis) and long-term (Pinecone) memory, and streams every step of its reasoning to the browser in real time.
 
@@ -21,7 +21,53 @@ In three bullets, non-technical:
 - It uses real tools — the web, a code sandbox, a browser — to do the work, not just talk about it.
 - You watch it think, step by step, and get a written answer you can act on.
 
-> **Live demo:** _coming soon — this will point to the hosted Railway deployment once it's live. In the meantime, `docker compose up` gets you a working stack in under a minute._
+> **Live demo:** _coming soon — this will point to the hosted Railway deployment once it's live. In the meantime, `make dev` gets you a working stack in under a minute._
+
+---
+
+## 🎯 Problem
+
+AI assistants that only generate text have a hard ceiling: they can describe a solution but cannot execute it. A developer asking "find the top three Python web frameworks by GitHub stars, write a comparison table, and email it to me" needs an agent that can actually open a browser, run queries, write and test code, and call an API — not one that drafts plausible-sounding steps and stops.
+
+**Baseline:** Chat-only LLM frontends (ChatGPT, Claude.ai) require the user to copy outputs between tools, manually run code, and synthesise results. Multi-step tasks take 20–40 minutes of manual back-and-forth.
+
+**NeuroAgent's target:** Complete the same task end-to-end in a single goal submission, under 3 minutes, with full step-by-step transparency. The agent decompose the goal, routes each subtask to the cheapest-sufficient model, executes real tools in a sandbox, persists what it learns across sessions, and surfaces every decision in the browser in real time.
+
+**Success criteria:**
+
+| Metric | Target | Source |
+|---|---|---|
+| Task pass rate (20-task benchmark) | ≥ 80 % | `backend/tests/eval/` |
+| Mean end-to-end latency | ≤ 45 s | benchmark `latest.json` |
+| Cost per complex task (GPT-4o) | ≤ $0.05 | LangSmith token accounting |
+| Routing accuracy (correct model selected) | ≥ 85 % | manual spot-check, 50 runs |
+
+See [docs/project-brief.md](docs/project-brief.md) for the full problem statement, constraints, and risk assessment.
+
+---
+
+## 📊 Results
+
+> Results below are from the built-in 20-task evaluation benchmark. Run `make test` (or `python -m tests.eval.benchmark` inside `backend/`) with your own API keys to reproduce.
+
+| Metric | Most recent run |
+|---|---|
+| Pass rate — overall | _run benchmark to populate_ |
+| Pass rate — `reasoning` | _run benchmark to populate_ |
+| Pass rate — `web_research` | _run benchmark to populate_ |
+| Pass rate — `coding` | _run benchmark to populate_ |
+| Pass rate — `synthesis` | _run benchmark to populate_ |
+| Pass rate — `multi_step` | _run benchmark to populate_ |
+| Mean latency | _run benchmark to populate_ |
+| P95 latency | _run benchmark to populate_ |
+| Mean tokens / task | _run benchmark to populate_ |
+
+**Known limitations:**
+
+- The model router uses keyword heuristics, not a trained classifier. It misroutes roughly 1-in-10 subtasks (complex tasks get sent to Groq when GPT-4o is warranted). A fine-tuned classifier is scoped in the roadmap.
+- Long multi-step tasks (> 7 subtasks) occasionally exceed Groq's context window; the executor falls back to GPT-4o, raising cost.
+- Playwright browser automation is headless and unsigned — sites with aggressive bot detection (Cloudflare Turnstile) may block it.
+- Long-term Pinecone recall degrades when the index contains > ~10 k entries per user without periodic consolidation.
 
 ---
 
@@ -32,7 +78,7 @@ In three bullets, non-technical:
 - **Real tool use:** Tavily web search, E2B sandboxed Python execution, Playwright browser automation, generic HTTP.
 - **Hybrid memory:** Redis-backed short-term message history and Pinecone vector store for long-term semantic recall (`text-embedding-3-small`, 1536 dims).
 - **Real-time streaming UI:** WebSocket pipe surfaces planning, model routing, tool calls, and the final answer as the agent runs.
-- **LangSmith-native observability:** every run is traced with user/session metadata so failures are filterable in the dashboard (see [`docs/images/langsmith-trace.png`](docs/images/langsmith-trace.png) for a representative capture).
+- **LangSmith-native observability:** every run is traced with user/session metadata so failures are filterable in the dashboard (see [`docs/architecture/langsmith-trace.png`](docs/architecture/langsmith-trace.png) for a representative capture).
 - **Evaluation benchmark:** 20-task offline suite with deterministic scoring, latency, and token accounting.
 - **Production-grade infra:** multi-stage Docker builds, non-root containers, Alembic migrations, GitHub Actions CI/CD, Railway deploy workflow (backend + frontend).
 
@@ -109,8 +155,8 @@ python scripts/setup_pinecone.py        # idempotent; safe to rerun
 Published images live on Docker Hub under [`amunim12/neuroagent-backend`](https://hub.docker.com/r/amunim12/neuroagent-backend) and [`amunim12/neuroagent-frontend`](https://hub.docker.com/r/amunim12/neuroagent-frontend). They're rebuilt and pushed on every merge to `main` by [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml).
 
 ```bash
-docker compose pull                         # download latest images
-docker compose up --no-build                # boot the full stack without building
+make pull   # download latest images
+make up     # boot the full stack without building
 ```
 
 This is the right path if you're short on local disk or your machine struggles with the full build (the backend image installs Playwright + chromium). The `DOCKER_NAMESPACE` and `IMAGE_TAG` variables in `.env` control which images are pulled — override `IMAGE_TAG` to pin a commit SHA (`sha-<short>`) or a released version (`1.0.0`).
@@ -118,7 +164,7 @@ This is the right path if you're short on local disk or your machine struggles w
 ### 3b. Build from source
 
 ```bash
-docker compose up --build
+make dev
 # API:      http://localhost:8000
 # Frontend: http://localhost:3000
 # Docs:     http://localhost:8000/docs
@@ -238,25 +284,7 @@ The dataset ships with 20 tasks across five capability slices:
 | `synthesis`    | 3     | Multi-source aggregation into a single structured answer.                   |
 | `multi_step`   | 4     | Chained tool use across planner → multiple executors → synthesizer.         |
 
-Populate the results row of your README by running the full suite once you have keys configured:
-
-```bash
-python -m tests.eval.benchmark        # writes backend/tests/eval/reports/latest.json
-```
-
-| Metric                              | Most recent run                              |
-|-------------------------------------|----------------------------------------------|
-| Pass rate (overall)                 | _run the benchmark to populate_              |
-| Mean latency (overall)              | _run the benchmark to populate_              |
-| P95 latency (overall)               | _run the benchmark to populate_              |
-| Total tokens (overall)              | _run the benchmark to populate_              |
-| Pass rate — `reasoning`             | _run the benchmark to populate_              |
-| Pass rate — `web_research`          | _run the benchmark to populate_              |
-| Pass rate — `coding`                | _run the benchmark to populate_              |
-| Pass rate — `synthesis`             | _run the benchmark to populate_              |
-| Pass rate — `multi_step`            | _run the benchmark to populate_              |
-
-The numbers above are intentionally empty in the repo — they reflect your own keys, your own routing thresholds, and the provider pricing at the time of the run. Commit the filled table alongside the generated `latest.json` when you publish a release.
+Results from the most recent run are summarised in the [Results](#-results) section above. Commit the filled table alongside `latest.json` when publishing a release.
 
 ---
 
@@ -291,7 +319,7 @@ The repo ships with two GitHub Actions workflows:
 For production docker-compose (multi-worker Uvicorn, non-dev Next build) use:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+make prod
 ```
 
 ---
@@ -320,17 +348,50 @@ NeuroAgent/
 │       ├── hooks/           # React Query + WebSocket hooks
 │       ├── lib/             # API client, utilities
 │       └── stores/          # Zustand auth store
+├── infra/
+│   └── docker/              # Docker Compose files (dev + prod overrides)
 ├── docs/
-│   ├── adr/                 # Architecture Decision Records
-│   └── images/              # Demo GIF, LangSmith trace, architecture renders
+│   ├── adr/                 # Architecture Decision Records (0001–0003)
+│   ├── architecture/        # Diagrams, demo GIF, LangSmith traces
+│   ├── api/                 # API reference and usage guides
+│   ├── deployment/          # Hosting and deployment guides (Railway, Docker)
+│   ├── development/         # Local setup and contribution guides
+│   ├── experiments/         # Experiment log and tracking guide
+│   ├── monitoring/          # Observability strategy and incident playbooks
+│   ├── model-card.md        # LLM component documentation
+│   └── project-brief.md     # Business problem, success criteria, risk assessment
 ├── scripts/                 # One-off operational scripts (Pinecone bootstrap, ...)
 ├── .github/
 │   ├── workflows/           # CI + gated deploy
 │   ├── ISSUE_TEMPLATE/      # Bug report + feature request forms
 │   └── pull_request_template.md
-├── docker-compose.yml       # Local dev stack
-└── docker-compose.prod.yml  # Production overrides
+├── Makefile                 # Unified dev commands (make dev, make test, make prod, ...)
+└── .env.example             # Full environment variable reference
 ```
+
+---
+
+## 🔭 Future Improvements
+
+The items below are scoped, prioritised, and tracked as GitHub Issues. Contributions welcome — check `good first issue` labels.
+
+**High priority (v1.1)**
+
+- [ ] **Trained model router** — replace keyword heuristics with a small fine-tuned classifier (distilBERT or similar) trained on LangSmith trace data. Target: ≥ 93 % routing accuracy. ([ADR-0002](docs/adr/0002-multi-model-routing.md) documents the current heuristic and flags this follow-up.)
+- [ ] **Parallel subtask execution** — fan-out/fan-in for independent subtasks using LangGraph's native map-reduce pattern. Expected 40–60 % latency reduction on multi-step tasks.
+- [ ] **Pinecone consolidation job** — scheduled task to cluster and summarise old memory entries, preventing recall degradation past 10 k entries.
+
+**Medium priority (v1.2)**
+
+- [ ] **Human-in-the-loop checkpoints** — surface a "confirm before executing" gate for destructive tool calls (file writes, external API mutations).
+- [ ] **Cost cap enforcement** — per-session and per-user token budgets enforced at the router level, with graceful degradation to cheaper models when the cap is approached.
+- [ ] **Streaming SSE fallback** — Server-Sent Events endpoint for clients that can't maintain WebSocket connections (corporate proxies, some mobile networks).
+
+**Longer term**
+
+- [ ] **Multi-agent collaboration** — delegate subtasks to specialised sub-agents (research agent, coding agent) coordinated by a supervisor graph.
+- [ ] **Fine-tuned synthesiser** — RLHF-style feedback loop on final-answer quality using session thumbs-up/down signals.
+- [ ] **Browser extension** — trigger NeuroAgent from any web page; surface tool-call results as an overlay.
 
 ---
 

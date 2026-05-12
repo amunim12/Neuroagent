@@ -20,6 +20,7 @@ out/
 .env
 .env.local
 .env.*.local
+infra/docker/.env.test
 
 # IDE
 .vscode/
@@ -51,3 +52,4 @@ backend/tests/eval/reports/
 *.log
 .claude
 CLAUDE.md
+.mcp.json

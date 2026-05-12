@@ -16,7 +16,7 @@ The README references these assets by relative path, so the filenames matter. Dr
 
 ### `demo.gif`
 
-1. Start the stack with `docker compose up --build` and wait until both `backend` and `frontend` containers are healthy.
+1. Start the stack with `make dev` and wait until both `backend` and `frontend` containers are healthy.
 2. Register a new user, sign in, and open the dashboard.
 3. Submit a goal that exercises multiple tools, e.g. *"Search for the latest stable Python release, then write a snippet that prints its major/minor version."*
 4. Record from goal submission to the final synthesised answer.

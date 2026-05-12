@@ -14,7 +14,7 @@ See the [Quickstart in the README](README.md#-quickstart) for the full path. A m
 git clone https://github.com/amunim12/NeuroAgent.git
 cd NeuroAgent
 cp .env.example .env     # fill in at least OPENAI_API_KEY, TAVILY_API_KEY, JWT_SECRET_KEY
-docker compose up --build
+make dev
 ```
 
 If you don't use Docker:

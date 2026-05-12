@@ -37,7 +37,7 @@ This Code applies to all project-managed spaces, including:
 
 ## Reporting
 
-If you experience or observe behaviour that violates this Code, report it to the maintainers by email at **hamzaahmedsiddiqui03@gmail.com**. Reports will be read promptly and handled confidentially. Please include:
+If you experience or observe behaviour that violates this Code, report it to the maintainers by email at **abdulmunim.personal@gmail.com**. Reports will be read promptly and handled confidentially. Please include:
 
 - What happened (and a link, if it's on GitHub).
 - When it happened.

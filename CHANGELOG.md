@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/project-brief.md` — formal project brief covering the business problem, target user, success metrics, constraints, and risk assessment.
+- `docs/model-card.md` — model card documenting NeuroAgent's three-model routing system (GPT-4o, Claude Sonnet, Groq Llama 3), intended use, known failure modes, and ethical considerations, following the Mitchell et al. (2019) framework.
+- `docs/adr/0002-multi-model-routing.md` — ADR documenting the v1 keyword-heuristic router design, its known misclassification rate, and the migration path to a classifier-based router in v1.1.
+- `docs/adr/0003-hybrid-memory-architecture.md` — ADR documenting the Redis (short-term) + Pinecone (long-term) two-tier memory design and the trade-offs over a single `pgvector`-backed store.
+- `docs/monitoring/strategy.md` — observability strategy covering system health signals, agent pipeline health, cost monitoring, model/data drift detection, logging standards, and runbooks.
+- `docs/monitoring/incident-response.md` — incident response plan with six playbooks (API down, all runs failing, provider outage, cost spike, benchmark regression, migration failure) and a post-mortem template.
+- `docs/experiments/README.md` — experiment tracking guide with directory conventions, a structured log template, baseline instructions, and a current-experiments index.
+- `README.md`: added **Problem** section framing the gap NeuroAgent addresses, quantified success criteria, and references to `docs/project-brief.md`.
+- `README.md`: added **Results** section summarising benchmark metrics with placeholders to populate after a real run.
+- `README.md`: added **Future Improvements** section with prioritised roadmap items (trained router, parallel subtask execution, Pinecone consolidation, human-in-the-loop checkpoints, cost cap enforcement).
+- `SECURITY.md` — vulnerability disclosure policy with in-scope targets, 90-day responsible disclosure timeline, and contact email.
+- `Makefile` — unified dev command interface (`make dev`, `make test`, `make lint`, `make prod`, etc.) replacing raw `docker compose` invocations throughout the docs.
+- `.editorconfig` — per-language indentation, charset, and whitespace rules for consistent editor behaviour.
+- `infra/docker/docker-compose.yml` and `infra/docker/docker-compose.prod.yml` — moved from the repo root into `infra/docker/` for cleaner separation of infrastructure configuration.
+- `docs/deployment/railway.md` — step-by-step Railway deployment guide.
+- `docs/development/setup.md` — local development setup guide (Docker and bare-metal paths).
+- `docs/api/overview.md` — full REST + WebSocket API reference.
 - `CODE_OF_CONDUCT.md` with the project's community expectations, reporting channel, and enforcement ladder.
 - `docs/adr/0001-langgraph-agent-architecture.md` — the first architecture decision record, covering why the agent is built on LangGraph and the trade-offs taken.
 - `.github/pull_request_template.md` — PR template with summary, test plan, and a full definition-of-done checklist.
