@@ -49,7 +49,7 @@ backend/tests/eval/reports/
 *.sqlite3
 
 # Worktrees
-.worktrees/
+.worktrees\
 
 # Misc
 *.log

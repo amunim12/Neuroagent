@@ -21,26 +21,25 @@ In three bullets, non-technical:
 - It uses real tools — the web, a code sandbox, a browser — to do the work, not just talk about it.
 - You watch it think, step by step, and get a written answer you can act on.
 
-> **Live demo:** _coming soon — this will point to the hosted Railway deployment once it's live. In the meantime, `make dev` gets you a working stack in under a minute._
 
 ---
 
 ## 🎯 Problem
 
-AI assistants that only generate text have a hard ceiling: they can describe a solution but cannot execute it. A developer asking "find the top three Python web frameworks by GitHub stars, write a comparison table, and email it to me" needs an agent that can actually open a browser, run queries, write and test code, and call an API — not one that drafts plausible-sounding steps and stops.
+AI assistants that only generate text have a hard ceiling: they can describe a solution but cannot execute it. A developer asking "find the top three Python web frameworks by GitHub stars, write a comparison table, and email it to me" needs an agent that can actually open a browser, run queries, write and test code, and call an API not one that drafts plausible sounding steps and stops.
 
-**Baseline:** Chat-only LLM frontends (ChatGPT, Claude.ai) require the user to copy outputs between tools, manually run code, and synthesise results. Multi-step tasks take 20–40 minutes of manual back-and-forth.
+**Baseline:** Chat-only LLM frontends (ChatGPT, Claude.ai) require the user to copy outputs between tools, manually run code, and synthesise results. Multi step tasks take 20–40 minutes of manual back and forth.
 
-**NeuroAgent's target:** Complete the same task end-to-end in a single goal submission, under 3 minutes, with full step-by-step transparency. The agent decompose the goal, routes each subtask to the cheapest-sufficient model, executes real tools in a sandbox, persists what it learns across sessions, and surfaces every decision in the browser in real time.
+**NeuroAgent's target:** Complete the same task end to end in a single goal submission, under 3 minutes, with full step by step transparency. The agent decompose the goal, routes each subtask to the cheapest sufficient model, executes real tools in a sandbox, persists what it learns across sessions, and surfaces every decision in the browser in real time.
 
 **Success criteria:**
 
 | Metric | Target | Source |
 |---|---|---|
 | Task pass rate (20-task benchmark) | ≥ 80 % | `backend/tests/eval/` |
-| Mean end-to-end latency | ≤ 45 s | benchmark `latest.json` |
+| Mean end to end latency | ≤ 45 s | benchmark `latest.json` |
 | Cost per complex task (GPT-4o) | ≤ $0.05 | LangSmith token accounting |
-| Routing accuracy (correct model selected) | ≥ 85 % | manual spot-check, 50 runs |
+| Routing accuracy (correct model selected) | ≥ 85 % | manual spot check, 50 runs |
 
 See [docs/project-brief.md](docs/project-brief.md) for the full problem statement, constraints, and risk assessment.
 
@@ -48,26 +47,26 @@ See [docs/project-brief.md](docs/project-brief.md) for the full problem statemen
 
 ## 📊 Results
 
-> Results below are from the built-in 20-task evaluation benchmark. Run `make test` (or `python -m tests.eval.benchmark` inside `backend/`) with your own API keys to reproduce.
+> Results below are from the built in 20 task evaluation benchmark. Run `make test` (or `python -m tests.eval.benchmark` inside `backend/`) with your own API keys to reproduce.
 
 | Metric | Most recent run |
 |---|---|
-| Pass rate — overall | _run benchmark to populate_ |
-| Pass rate — `reasoning` | _run benchmark to populate_ |
-| Pass rate — `web_research` | _run benchmark to populate_ |
-| Pass rate — `coding` | _run benchmark to populate_ |
-| Pass rate — `synthesis` | _run benchmark to populate_ |
-| Pass rate — `multi_step` | _run benchmark to populate_ |
+| Pass rate (overall) | _run benchmark to populate_ |
+| Pass rate (`reasoning`) | _run benchmark to populate_ |
+| Pass rate (`web_research`) | _run benchmark to populate_ |
+| Pass rate (`coding`) | _run benchmark to populate_ |
+| Pass rate (`synthesis`) | _run benchmark to populate_ |
+| Pass rate (`multi_step`) | _run benchmark to populate_ |
 | Mean latency | _run benchmark to populate_ |
 | P95 latency | _run benchmark to populate_ |
 | Mean tokens / task | _run benchmark to populate_ |
 
 **Known limitations:**
 
-- The model router uses keyword heuristics, not a trained classifier. It misroutes roughly 1-in-10 subtasks (complex tasks get sent to Groq when GPT-4o is warranted). A fine-tuned classifier is scoped in the roadmap.
+- The model router uses keyword heuristics, not a trained classifier. It misroutes roughly 1 in 10 subtasks (complex tasks get sent to Groq when GPT-4o is warranted). A fine-tuned classifier is scoped in the roadmap.
 - Long multi-step tasks (> 7 subtasks) occasionally exceed Groq's context window; the executor falls back to GPT-4o, raising cost.
-- Playwright browser automation is headless and unsigned — sites with aggressive bot detection (Cloudflare Turnstile) may block it.
-- Long-term Pinecone recall degrades when the index contains > ~10 k entries per user without periodic consolidation.
+- Playwright browser automation is headless and unsigned sites with aggressive bot detection (Cloudflare Turnstile) may block it.
+- Long term Pinecone recall degrades when the index contains > ~10 k entries per user without periodic consolidation.
 
 ---
 
@@ -76,11 +75,11 @@ See [docs/project-brief.md](docs/project-brief.md) for the full problem statemen
 - **Goal → plan → execute → synthesise** pipeline built on LangGraph, with conditional looping until subtasks are complete.
 - **Multi-model routing:** simple retrieval → Groq Llama 3, coding/structured reasoning → Claude Sonnet, complex/ambiguous → GPT-4o.
 - **Real tool use:** Tavily web search, E2B sandboxed Python execution, Playwright browser automation, generic HTTP.
-- **Hybrid memory:** Redis-backed short-term message history and Pinecone vector store for long-term semantic recall (`text-embedding-3-small`, 1536 dims).
+- **Hybrid memory:** Redis backed short term message history and Pinecone vector store for long term semantic recall (`text-embedding-3-small`, 1536 dims).
 - **Real-time streaming UI:** WebSocket pipe surfaces planning, model routing, tool calls, and the final answer as the agent runs.
 - **LangSmith-native observability:** every run is traced with user/session metadata so failures are filterable in the dashboard (see [`docs/architecture/langsmith-trace.png`](docs/architecture/langsmith-trace.png) for a representative capture).
-- **Evaluation benchmark:** 20-task offline suite with deterministic scoring, latency, and token accounting.
-- **Production-grade infra:** multi-stage Docker builds, non-root containers, Alembic migrations, GitHub Actions CI/CD, Railway deploy workflow (backend + frontend).
+- **Evaluation benchmark:** 20 task offline suite with deterministic scoring, latency, and token accounting.
+- **Production-grade infra:** multi stage Docker builds, non root containers, Alembic migrations, GitHub Actions CI/CD, AWS deploy workflow (backend + frontend).
 
 ---
 
@@ -159,7 +158,7 @@ make pull   # download latest images
 make up     # boot the full stack without building
 ```
 
-This is the right path if you're short on local disk or your machine struggles with the full build (the backend image installs Playwright + chromium). The `DOCKER_NAMESPACE` and `IMAGE_TAG` variables in `.env` control which images are pulled — override `IMAGE_TAG` to pin a commit SHA (`sha-<short>`) or a released version (`1.0.0`).
+This is the right path if you're short on local disk or your machine struggles with the full build (the backend image installs Playwright + chromium). The `DOCKER_NAMESPACE` and `IMAGE_TAG` variables in `.env` control which images are pulled override `IMAGE_TAG` to pin a commit SHA (`sha-<short>`) or a released version (`1.0.0`).
 
 ### 3b. Build from source
 
@@ -204,7 +203,7 @@ npm run dev
 
 ## ⚙️ Configuration
 
-All runtime configuration is loaded from environment variables — never hard-code anything. The full list lives in [.env.example](.env.example). The most important groups:
+All runtime configuration is loaded from environment variables never hard code anything. The full list lives in [.env.example](.env.example). The most important groups:
 
 - **LLM providers** — `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`
 - **Tools** — `TAVILY_API_KEY`, `E2B_API_KEY`
@@ -290,9 +289,9 @@ Results from the most recent run are summarised in the [Results](#-results) sect
 
 ## 🚢 Deployment
 
-**Hosted demo:** _not yet published — see the note near the top of this README. When it goes live, this section will link to the two Railway services (backend + frontend)._
+**Hosted demo:** _not yet published — see the note near the top of this README. When it goes live, this section will link to the two Railway services (backend + frontend).
 
-Production deploys follow a **registry-pull** flow — GitHub builds images and pushes them to Docker Hub; Railway pulls from Docker Hub and redeploys automatically when a new `:latest` digest appears. GitHub never needs Railway credentials.
+Production deploys follow a **registry-pull** flow GitHub builds images and pushes them to Docker Hub; Railway pulls from Docker Hub and redeploys automatically when a new `:latest` digest appears. GitHub never needs Railway credentials.
 
 The repo ships with two GitHub Actions workflows:
 
@@ -373,11 +372,11 @@ NeuroAgent/
 
 ## 🔭 Future Improvements
 
-The items below are scoped, prioritised, and tracked as GitHub Issues. Contributions welcome — check `good first issue` labels.
+The items below are scoped, prioritised, and tracked as GitHub Issues. Contributions welcome check `good first issue` labels.
 
 **High priority (v1.1)**
 
-- [ ] **Trained model router** — replace keyword heuristics with a small fine-tuned classifier (distilBERT or similar) trained on LangSmith trace data. Target: ≥ 93 % routing accuracy. ([ADR-0002](docs/adr/0002-multi-model-routing.md) documents the current heuristic and flags this follow-up.)
+- [ ] **Trained model router** — replace keyword heuristics with a small fine tuned classifier (distilBERT or similar) trained on LangSmith trace data. Target: ≥ 93 % routing accuracy. ([ADR-0002](docs/adr/0002-multi-model-routing.md) documents the current heuristic and flags this follow-up.)
 - [ ] **Parallel subtask execution** — fan-out/fan-in for independent subtasks using LangGraph's native map-reduce pattern. Expected 40–60 % latency reduction on multi-step tasks.
 - [ ] **Pinecone consolidation job** — scheduled task to cluster and summarise old memory entries, preventing recall degradation past 10 k entries.
 
